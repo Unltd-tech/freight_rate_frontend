@@ -11,9 +11,10 @@ export default function PricingCalculator() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/options")
+    axios.get(`${API_BASE_URL}/api/options`)
       .then((res) => setOptions(res.data))
       .catch((err) => console.error(err));
   }, []);
@@ -49,7 +50,7 @@ export default function PricingCalculator() {
         }
 
         const res = await axios.post(
-          "http://localhost:5000/api/relocation-enquiry",
+         `${API_BASE_URL}/api/relocation-enquiry`,
           formData,
           {
             headers: {
@@ -60,7 +61,7 @@ export default function PricingCalculator() {
 
         setResult(res.data);
       } else {
-        const res = await axios.post("http://localhost:5000/api/estimate", {
+        const res = await axios.post(`${API_BASE_URL}/api/estimate`, {
           freightType,
           details,
           customerInfo,

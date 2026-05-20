@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function PricingUpload() {
   const [file, setFile] = useState(null);
@@ -32,25 +33,22 @@ export default function PricingUpload() {
       formData.append("password", password);
 
       const res = await axios.post(
-        "http://localhost:5000/api/upload-pricing",
+        `${API_BASE_URL}/api/upload-pricing`,
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       setMessage(res.data.message || "Uploaded successfully.");
-
     } catch (err) {
       console.error(err);
 
       setMessage(
-        err.response?.data?.message ||
-          "Upload failed. Please try again."
+        err.response?.data?.message || "Upload failed. Please try again.",
       );
-
     } finally {
       setUploading(false);
     }
@@ -59,13 +57,13 @@ export default function PricingUpload() {
   return (
     <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-
         <h1 className="text-2xl font-bold text-[#0B1F3A] mb-2">
           Upload freight rates Sheet
         </h1>
 
         <p className="text-gray-600 mb-6">
-          Upload the latest freight rates Excel file. Only .xlsx files are allowed.
+          Upload the latest freight rates Excel file. Only .xlsx files are
+          allowed.
         </p>
 
         {/* PASSWORD */}
