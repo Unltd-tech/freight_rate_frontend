@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 export default function PricingCalculator() {
   const [options, setOptions] = useState(null);
   const [freightType, setFreightType] = useState("Local");
@@ -11,10 +13,9 @@ export default function PricingCalculator() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
-
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/api/options`)
+    axios
+      .get(`${API_BASE_URL}/api/options`)
       .then((res) => setOptions(res.data))
       .catch((err) => console.error(err));
   }, []);
@@ -50,7 +51,7 @@ export default function PricingCalculator() {
         }
 
         const res = await axios.post(
-         `${API_BASE_URL}/api/relocation-enquiry`,
+          `${API_BASE_URL}/api/relocation-enquiry`,
           formData,
           {
             headers: {
