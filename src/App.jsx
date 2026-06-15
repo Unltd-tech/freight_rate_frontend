@@ -6,7 +6,7 @@ import PricingUpload from "./components/PricingUpload";
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/calculator" />} />
+      <Route path="/" element={<PricingCalculator />} />
 
       <Route path="/calculator" element={<PricingCalculator />} />
 
