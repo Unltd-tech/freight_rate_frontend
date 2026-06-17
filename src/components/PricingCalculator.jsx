@@ -1,10 +1,59 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
+const QBH_ASSET_BASE_URL =
+  import.meta.env.VITE_QBH_ASSET_BASE_URL?.replace(/\/$/, "") ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://qbh.qa");
+const CONTROL_CLASS =
+  "w-full border border-[#D9E1EC] rounded-lg px-4 py-3 text-[#002C3A] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E4660C] focus:border-[#E4660C]";
+const ERROR_CONTROL_CLASS =
+  "w-full border border-red-500 rounded-lg px-4 py-3 text-[#002C3A] focus:outline-none focus:ring-2 focus:ring-red-400";
+const PRIMARY_BUTTON_CLASS =
+  "rounded-lg bg-[#E4660C] py-3 font-semibold text-white transition hover:bg-[#C75408] disabled:cursor-not-allowed disabled:bg-gray-300";
+const EMPTY_OPTIONS = {
+  local_locations: [],
+  local_vehicles: [],
+  land_countries: [],
+  ports: [],
+  container_types: [],
+  container_sizes: [],
+  air_locations: [],
+};
+
+const normalizeOptions = (data) =>
+  Object.fromEntries(
+    Object.keys(EMPTY_OPTIONS).map((key) => [
+      key,
+      Array.isArray(data?.[key]) ? data[key] : EMPTY_OPTIONS[key],
+    ]),
+  );
+
+function QbhInline({ variant = "gray800", className = "" }) {
+  const imageName =
+    variant === "white"
+      ? "qbhQWhite.png"
+      : variant === "gray600"
+        ? "qbhQgray600.png"
+        : "qbhQgray800.png";
+
+  return (
+    <span className={`inline-flex items-baseline leading-none ${className}`}>
+      <span className="sr-only">QBH</span>
+      <img
+        src={`${QBH_ASSET_BASE_URL}/qbhQpngs/${imageName}`}
+        alt=""
+        aria-hidden="true"
+        className="h-[0.75em] w-auto shrink-0 select-none"
+      />
+      <span aria-hidden="true">BH</span>
+    </span>
+  );
+}
 
 export default function PricingCalculator() {
-  const [options, setOptions] = useState(null);
+  const contentRef = useRef(null);
+  const [options, setOptions] = useState(EMPTY_OPTIONS);
   const [freightType, setFreightType] = useState("Local");
   const [details, setDetails] = useState({});
   const [result, setResult] = useState(null);
@@ -12,12 +61,52 @@ export default function PricingCalculator() {
   const [showCustomerPopup, setShowCustomerPopup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [optionsError, setOptionsError] = useState(
+    API_BASE_URL
+      ? ""
+      : "Calculator options are unavailable because VITE_API_URL is not configured.",
+  );
 
   useEffect(() => {
+    if (!API_BASE_URL) {
+      return;
+    }
+
     axios
       .get(`${API_BASE_URL}/api/options`)
-      .then((res) => setOptions(res.data))
-      .catch((err) => console.error(err));
+      .then((res) => {
+        setOptions(normalizeOptions(res.data));
+        setOptionsError("");
+      })
+      .catch((err) => {
+        console.error(err);
+        setOptionsError("Calculator options could not be loaded from the API.");
+      });
+  }, []);
+
+  useEffect(() => {
+    const element = contentRef.current;
+    if (!element || !window.parent) return undefined;
+
+    const notifyParent = () => {
+      window.parent.postMessage(
+        {
+          type: "QBH_ESTIMATE_RESIZE",
+          height: Math.ceil(element.scrollHeight),
+        },
+        "*",
+      );
+    };
+
+    notifyParent();
+
+    const resizeObserver = new ResizeObserver(() => {
+      window.requestAnimationFrame(notifyParent);
+    });
+
+    resizeObserver.observe(element);
+
+    return () => resizeObserver.disconnect();
   }, []);
 
   const handleChange = (key, value) => {
@@ -172,20 +261,24 @@ export default function PricingCalculator() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] py-10 px-4">
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-4xl font-bold text-[#0B1F3A] mb-8 text-center">
-          QBH Estimate Calculator
+    <div ref={contentRef} className="w-full bg-transparent px-1 py-2 md:px-2">
+      <div className="w-full">
+        <h1 className="mb-8 flex flex-col items-center justify-center gap-2 text-center font-bold leading-tight text-[#002C3A] md:flex-row md:gap-2 md:text-4xl">
+          <QbhInline className="text-4xl md:text-inherit" />
+          <span className="flex flex-col text-4xl md:block md:text-inherit">
+            <span>Estimate</span>
+            <span className="md:ml-2">Calculator</span>
+          </span>
         </h1>
 
         {/* Freight Type */}
         <div className="mb-6">
-          <label className="block mb-2 font-semibold text-gray-700">
+          <label className="block mb-2 font-semibold text-[#002C3A]">
             Freight Type
           </label>
 
           <select
-            className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={CONTROL_CLASS}
             onChange={(e) => {
               setFreightType(e.target.value);
               setDetails({});
@@ -212,11 +305,17 @@ export default function PricingCalculator() {
           </select>
         </div>
 
+        {optionsError && (
+          <div className="mb-6 rounded-lg border border-[#E4660C]/25 bg-[#F1F1F1] px-4 py-3 text-sm font-medium text-[#8f3d07]">
+            {optionsError}
+          </div>
+        )}
+
         {/* LOCAL */}
-        {freightType === "Local" && options && (
+        {freightType === "Local" && (
           <div className="grid md:grid-cols-3 gap-4">
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("from", e.target.value)}
             >
               <option>From Location</option>
@@ -226,7 +325,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("to", e.target.value)}
             >
               <option>To Location</option>
@@ -236,7 +335,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("vehicle", e.target.value)}
             >
               <option>Vehicle</option>
@@ -248,10 +347,10 @@ export default function PricingCalculator() {
         )}
 
         {/* LAND */}
-        {freightType === "Land" && options && (
+        {freightType === "Land" && (
           <div className="grid md:grid-cols-3 gap-4">
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("from", e.target.value)}
             >
               <option>From Country</option>
@@ -261,7 +360,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("to", e.target.value)}
             >
               <option>To Country</option>
@@ -271,7 +370,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("vehicle", e.target.value)}
             >
               <option>Vehicle</option>
@@ -283,10 +382,10 @@ export default function PricingCalculator() {
         )}
 
         {/* OCEAN FCL */}
-        {freightType === "Ocean_FCL" && options && (
+        {freightType === "Ocean_FCL" && (
           <div className="grid md:grid-cols-2 gap-4">
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("from", e.target.value)}
             >
               <option>From Port</option>
@@ -296,7 +395,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("to", e.target.value)}
             >
               <option>To Port</option>
@@ -306,7 +405,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("containerType", e.target.value)}
             >
               <option>Container Type</option>
@@ -316,7 +415,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("containerSize", e.target.value)}
             >
               <option>Container Size</option>
@@ -328,10 +427,10 @@ export default function PricingCalculator() {
         )}
 
         {/* AIR + LCL */}
-        {(freightType === "Ocean_LCL" || freightType === "Air") && options && (
+        {(freightType === "Ocean_LCL" || freightType === "Air") && (
           <div className="grid md:grid-cols-2 gap-4">
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("from", e.target.value)}
             >
               <option>From</option>
@@ -345,7 +444,7 @@ export default function PricingCalculator() {
             </select>
 
             <select
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("to", e.target.value)}
             >
               <option>To</option>
@@ -361,41 +460,39 @@ export default function PricingCalculator() {
             <input
               type="number"
               placeholder="Weight KG"
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("weight", e.target.value)}
             />
 
             <input
               type="number"
               placeholder="Length CM"
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("length", e.target.value)}
             />
 
             <input
               type="number"
               placeholder="Width CM"
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("width", e.target.value)}
             />
 
             <input
               type="number"
               placeholder="Height CM"
-              className="border border-[#D9E1EC] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E4FA3]"
+              className={CONTROL_CLASS}
               onChange={(e) => handleChange("height", e.target.value)}
             />
           </div>
         )}
 
         {/* RELOCATION */}
-        {freightType === "Relocation" && options && (
+        {freightType === "Relocation" && (
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <select
-                className={`w-full border rounded-lg px-4 py-3 ${
-                  errors.from ? "border-red-500" : "border-[#D9E1EC]"
-                }`}
+                className={errors.from ? ERROR_CONTROL_CLASS : CONTROL_CLASS}
                 onChange={(e) => handleChange("from", e.target.value)}
               >
                 <option value="">From Location</option>
@@ -412,9 +509,7 @@ export default function PricingCalculator() {
 
             <div>
               <select
-                className={`w-full border rounded-lg px-4 py-3 ${
-                  errors.to ? "border-red-500" : "border-[#D9E1EC]"
-                }`}
+                className={errors.to ? ERROR_CONTROL_CLASS : CONTROL_CLASS}
                 onChange={(e) => handleChange("to", e.target.value)}
               >
                 <option value="">To Location</option>
@@ -434,9 +529,7 @@ export default function PricingCalculator() {
                 type="file"
                 multiple
                 accept="image/*"
-                className={`w-full border rounded-lg px-4 py-3 ${
-                  errors.images ? "border-red-500" : "border-[#D9E1EC]"
-                }`}
+                className={errors.images ? ERROR_CONTROL_CLASS : CONTROL_CLASS}
                 onChange={(e) => handleChange("images", e.target.files)}
               />
 
@@ -451,10 +544,12 @@ export default function PricingCalculator() {
         <div className="mt-8">
           <button
             onClick={() => {
+              if (optionsError) return;
               if (!validateFreightDetails()) return;
               setShowCustomerPopup(true);
             }}
-            className="w-full bg-[#E87506] hover:bg-[#163d7d] text-white py-3 rounded-xl font-semibold transition"
+            disabled={Boolean(optionsError)}
+            className={`w-full ${PRIMARY_BUTTON_CLASS}`}
           >
             Get Estimate
           </button>
@@ -463,8 +558,8 @@ export default function PricingCalculator() {
         {/* CUSTOMER POPUP */}
         {showCustomerPopup && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
-              <h3 className="text-2xl font-bold text-[#0B1F3A] mb-6">
+            <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
+              <h3 className="mb-6 text-2xl font-bold text-[#002C3A]">
                 Enter Your Details
               </h3>
 
@@ -474,11 +569,9 @@ export default function PricingCalculator() {
                   <input
                     type="text"
                     placeholder="Full Name"
-                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 ${
-                      errors.name
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-[#D9E1EC] focus:ring-[#1E4FA3]"
-                    }`}
+                    className={
+                      errors.name ? ERROR_CONTROL_CLASS : CONTROL_CLASS
+                    }
                     onChange={(e) =>
                       handleCustomerChange("name", e.target.value)
                     }
@@ -494,11 +587,9 @@ export default function PricingCalculator() {
                   <input
                     type="email"
                     placeholder="Email Address"
-                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 ${
-                      errors.email
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-[#D9E1EC] focus:ring-[#1E4FA3]"
-                    }`}
+                    className={
+                      errors.email ? ERROR_CONTROL_CLASS : CONTROL_CLASS
+                    }
                     onChange={(e) =>
                       handleCustomerChange("email", e.target.value)
                     }
@@ -514,11 +605,9 @@ export default function PricingCalculator() {
                   <input
                     type="text"
                     placeholder="Phone Number"
-                    className={`w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 ${
-                      errors.phone
-                        ? "border-red-500 focus:ring-red-400"
-                        : "border-[#D9E1EC] focus:ring-[#1E4FA3]"
-                    }`}
+                    className={
+                      errors.phone ? ERROR_CONTROL_CLASS : CONTROL_CLASS
+                    }
                     onChange={(e) =>
                       handleCustomerChange("phone", e.target.value)
                     }
@@ -535,14 +624,14 @@ export default function PricingCalculator() {
                 <button
                   onClick={calculate}
                   disabled={loading}
-                  className="flex-1 bg-[#1E4FA3] hover:bg-[#163d7d] text-white py-3 rounded-xl font-semibold transition"
+                  className={`flex-1 ${PRIMARY_BUTTON_CLASS}`}
                 >
                   {loading ? "Submitting..." : "Submit"}{" "}
                 </button>
 
                 <button
                   onClick={() => setShowCustomerPopup(false)}
-                  className="flex-1 border border-[#D9E1EC] py-3 rounded-xl font-semibold hover:bg-gray-100 transition"
+                  className="flex-1 rounded-lg border border-[#D9E1EC] py-3 font-semibold text-[#002C3A] transition hover:bg-[#F1F1F1]"
                 >
                   Cancel
                 </button>
@@ -553,8 +642,8 @@ export default function PricingCalculator() {
 
         {/* RESULT */}
         {result && (
-          <div className="mt-8 bg-white border border-[#D9E1EC] rounded-2xl p-6 shadow-sm">
-            <h3 className="text-2xl font-bold text-[#D4A017] mb-3">
+          <div className="mt-8 rounded-lg border border-[#D9E1EC] bg-[#F1F1F1] p-6">
+            <h3 className="mb-3 text-2xl font-bold text-[#E4660C]">
               {result.estimate === "Quote Pending"
                 ? "Quote Pending"
                 : `Estimate: ${result.estimate} ${result.currency}`}
