@@ -192,12 +192,23 @@ export default function PricingCalculator() {
               setResult(null);
             }}
           >
-            <option value="Local">Local Transport</option>
-            <option value="Land">Land Freight</option>
-            <option value="Ocean_FCL">Ocean FCL</option>
-            <option value="Ocean_LCL">Ocean LCL</option>
-            <option value="Air">Air Freight</option>
-            <option value="Relocation">Relocation</option>
+            <option value="Local">Domestic Transport Solutions</option>
+
+            <option value="Land">GCC & International Road Freight</option>
+
+            <option value="Ocean_FCL">
+              Ocean Freight – Full Container Load (FCL)
+            </option>
+
+            <option value="Ocean_LCL">
+              Ocean Freight – Less than Container Load (LCL)
+            </option>
+
+            <option value="Air">Air Cargo & Express Logistics</option>
+
+            <option value="Relocation">
+              Packing, Moving & Relocation Services
+            </option>
           </select>
         </div>
 
