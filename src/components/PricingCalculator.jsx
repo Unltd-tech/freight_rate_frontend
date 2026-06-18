@@ -263,11 +263,10 @@ export default function PricingCalculator() {
   return (
     <div ref={contentRef} className="w-full bg-transparent px-1 py-2 md:px-2">
       <div className="w-full">
-        <h1 className="mb-8 flex flex-col items-center justify-center gap-2 text-center font-bold leading-tight text-[#002C3A] md:flex-row md:gap-2 md:text-4xl">
-          <QbhInline className="text-4xl md:text-inherit" />
-          <span className="flex flex-col text-4xl md:block md:text-inherit">
-            <span>Estimate</span>
-            <span className="md:ml-2">Calculator</span>
+        <h1 className="mb-8 flex flex-col items-center justify-center gap-2 text-center font-bold leading-tight text-[#002C3A]">
+          <QbhInline className="text-4xl md:text-5xl" />
+          <span className="whitespace-nowrap text-3xl md:text-4xl">
+            Estimate Calculator
           </span>
         </h1>
 
