@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import PricingCalculator from "./components/PricingCalculator";
 import PricingUpload from "./components/PricingUpload";
