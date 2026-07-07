@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { PhoneInput } from "react-international-phone";
+import "react-international-phone/style.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
 const QBH_ASSET_BASE_URL =
@@ -35,9 +37,9 @@ function QbhInline({ variant = "gray800", className = "" }) {
       ? "qbhQWhite.png"
       : variant === "secondary"
         ? "qbhQSecondary.png"
-      : variant === "gray600"
-        ? "qbhQgray600.png"
-        : "qbhQgray800.png";
+        : variant === "gray600"
+          ? "qbhQgray600.png"
+          : "qbhQgray800.png";
 
   return (
     <span className={`inline-flex items-baseline leading-none ${className}`}>
@@ -187,9 +189,9 @@ export default function PricingCalculator() {
     }
 
     if (!customerInfo.phone?.trim()) {
-      newErrors.phone = "Phone number is required";
-    } else if (!/^[0-9+\-\s]{7,15}$/.test(customerInfo.phone)) {
-      newErrors.phone = "Invalid phone number";
+      newErrors.phone = "Mobile number is required";
+    } else if (!/^\+[1-9]\d{7,14}$/.test(customerInfo.phone)) {
+      newErrors.phone = "Please enter a valid mobile number";
     }
 
     if (freightType === "Relocation") {
@@ -558,18 +560,28 @@ export default function PricingCalculator() {
 
         {/* CUSTOMER POPUP */}
         {showCustomerPopup && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
-              <h3 className="mb-6 text-2xl font-bold text-[#002C3A]">
-                Enter Your Details
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+            <div className="w-full max-w-md rounded-xl bg-white p-7 shadow-2xl">
+              <h3 className="mb-2 text-2xl font-bold text-[#002C3A]">
+                Request Your Estimate
               </h3>
+
+              <p className="mb-6 text-sm text-gray-500">
+                Please share your contact details and our team will follow up
+                shortly.
+              </p>
 
               <div className="space-y-4">
                 {/* NAME */}
                 <div>
+                  <label className="mb-1 block text-sm font-semibold text-[#002C3A]">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+
                   <input
                     type="text"
-                    placeholder="Full Name"
+                    placeholder="Enter your full name"
+                    value={customerInfo.name || ""}
                     className={
                       errors.name ? ERROR_CONTROL_CLASS : CONTROL_CLASS
                     }
@@ -579,15 +591,20 @@ export default function PricingCalculator() {
                   />
 
                   {errors.name && (
-                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                    <p className="mt-1 text-sm text-red-500">{errors.name}</p>
                   )}
                 </div>
 
                 {/* EMAIL */}
                 <div>
+                  <label className="mb-1 block text-sm font-semibold text-[#002C3A]">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+
                   <input
                     type="email"
-                    placeholder="Email Address"
+                    placeholder="name@company.com"
+                    value={customerInfo.email || ""}
                     className={
                       errors.email ? ERROR_CONTROL_CLASS : CONTROL_CLASS
                     }
@@ -597,42 +614,51 @@ export default function PricingCalculator() {
                   />
 
                   {errors.email && (
-                    <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                   )}
                 </div>
 
                 {/* PHONE */}
                 <div>
-                  <input
-                    type="text"
-                    placeholder="Phone Number"
-                    className={
-                      errors.phone ? ERROR_CONTROL_CLASS : CONTROL_CLASS
-                    }
-                    onChange={(e) =>
-                      handleCustomerChange("phone", e.target.value)
-                    }
+                  <label className="mb-1 block text-sm font-semibold text-[#002C3A]">
+                    Mobile Number <span className="text-red-500">*</span>
+                  </label>
+
+                  <PhoneInput
+                    defaultCountry="qa"
+                    value={customerInfo.phone || ""}
+                    onChange={(phone) => handleCustomerChange("phone", phone)}
+                    inputProps={{
+                      placeholder: "Enter your mobile number",
+                      required: true,
+                    }}
+                    style={{
+                      width: "100%",
+                    }}
                   />
 
                   {errors.phone && (
-                    <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                    <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
                   )}
                 </div>
               </div>
 
               {/* BUTTONS */}
-              <div className="flex gap-3 mt-6">
+              <div className="mt-7 flex gap-3">
                 <button
+                  type="button"
                   onClick={calculate}
                   disabled={loading}
                   className={`flex-1 ${PRIMARY_BUTTON_CLASS}`}
                 >
-                  {loading ? "Submitting..." : "Submit"}{" "}
+                  {loading ? "Submitting..." : "Submit Request"}
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setShowCustomerPopup(false)}
-                  className="flex-1 rounded-lg border border-[#D9E1EC] py-3 font-semibold text-[#002C3A] transition hover:bg-[#F1F1F1]"
+                  disabled={loading}
+                  className="flex-1 rounded-lg border border-[#D9E1EC] py-3 font-semibold text-[#002C3A] transition hover:bg-[#F1F1F1] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
