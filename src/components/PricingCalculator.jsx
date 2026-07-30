@@ -303,7 +303,7 @@ export default function PricingCalculator() {
             <option value="Air">Air Cargo & Express Logistics</option>
 
             <option value="Relocation">
-              Packing, Moving & Relocation Services
+              Relocation Services (Packing & Moving)
             </option>
           </select>
         </div>
@@ -671,14 +671,14 @@ export default function PricingCalculator() {
         {result && (
           <div className="mt-8 rounded-lg border border-[#D9E1EC] bg-[#F1F1F1] p-6">
             <h3 className="mb-3 text-2xl font-bold text-[#E4660C]">
-              {result.estimate === "Quote Pending"
-                ? "Quote Pending"
+              {result.estimate === "Thank you for your enquiry, We will get back to you as soon as possible"
+                ? "Thank you for your enquiry, We will get back to you as soon as possible"
                 : `Estimate: ${result.estimate} ${result.currency}`}
             </h3>
 
             {freightType === "Relocation" && (
               <p className="text-gray-600">
-                Our operations team will connect with you shortly regarding your
+                Our Our Pricing team will connect with you shortly regarding your
                 relocation enquiry.
               </p>
             )}
