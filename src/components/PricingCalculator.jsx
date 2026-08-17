@@ -16,7 +16,8 @@ const PRIMARY_BUTTON_CLASS =
 const EMPTY_OPTIONS = {
   local_locations: [],
   local_vehicles: [],
-  land_countries: [],
+  land_locations: [],
+  land_vehicles: [],
   ports: [],
   container_types: [],
   container_sizes: [],
@@ -224,8 +225,8 @@ export default function PricingCalculator() {
         break;
 
       case "Land":
-        if (!details.from) newErrors.from = "From country is required";
-        if (!details.to) newErrors.to = "To country is required";
+        if (!details.from) newErrors.from = "From location is required";
+        if (!details.to) newErrors.to = "To location is required";
         if (!details.vehicle) newErrors.vehicle = "Vehicle is required";
         break;
 
@@ -239,10 +240,17 @@ export default function PricingCalculator() {
         break;
 
       case "Air":
-      case "Ocean_LCL":
         if (!details.from) newErrors.from = "From is required";
         if (!details.to) newErrors.to = "To is required";
         if (!details.weight) newErrors.weight = "Weight is required";
+        if (!details.length) newErrors.length = "Length is required";
+        if (!details.width) newErrors.width = "Width is required";
+        if (!details.height) newErrors.height = "Height is required";
+        break;
+
+      case "Ocean_LCL":
+        if (!details.from) newErrors.from = "From port is required";
+        if (!details.to) newErrors.to = "To port is required";
         if (!details.length) newErrors.length = "Length is required";
         if (!details.width) newErrors.width = "Width is required";
         if (!details.height) newErrors.height = "Height is required";
@@ -354,31 +362,43 @@ export default function PricingCalculator() {
           <div className="grid md:grid-cols-3 gap-4">
             <select
               className={CONTROL_CLASS}
+              value={details.from || ""}
               onChange={(e) => handleChange("from", e.target.value)}
             >
-              <option>From Country</option>
-              {options.land_countries.map((x) => (
-                <option key={x}>{x}</option>
+              <option value="">From Location</option>
+
+              {options.land_locations.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
               ))}
             </select>
 
             <select
               className={CONTROL_CLASS}
+              value={details.to || ""}
               onChange={(e) => handleChange("to", e.target.value)}
             >
-              <option>To Country</option>
-              {options.land_countries.map((x) => (
-                <option key={x}>{x}</option>
+              <option value="">To Location</option>
+
+              {options.land_locations.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
               ))}
             </select>
 
             <select
               className={CONTROL_CLASS}
+              value={details.vehicle || ""}
               onChange={(e) => handleChange("vehicle", e.target.value)}
             >
-              <option>Vehicle</option>
-              {options.local_vehicles.map((x) => (
-                <option key={x}>{x}</option>
+              <option value="">Vehicle</option>
+
+              {options.land_vehicles.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
               ))}
             </select>
           </div>
@@ -433,39 +453,53 @@ export default function PricingCalculator() {
         {(freightType === "Ocean_LCL" || freightType === "Air") && (
           <div className="grid md:grid-cols-2 gap-4">
             <select
-              className={CONTROL_CLASS}
+              className={errors.from ? ERROR_CONTROL_CLASS : CONTROL_CLASS}
+              value={details.from || ""}
               onChange={(e) => handleChange("from", e.target.value)}
             >
-              <option>From</option>
+              <option value="">
+                {freightType === "Ocean_LCL" ? "From Port" : "From"}
+              </option>
 
               {(freightType === "Air"
                 ? options.air_locations
                 : options.ports
               ).map((x) => (
-                <option key={x}>{x}</option>
+                <option key={x} value={x}>
+                  {x}
+                </option>
               ))}
             </select>
 
             <select
-              className={CONTROL_CLASS}
+              className={errors.to ? ERROR_CONTROL_CLASS : CONTROL_CLASS}
+              value={details.to || ""}
               onChange={(e) => handleChange("to", e.target.value)}
             >
-              <option>To</option>
+              <option value="">
+                {freightType === "Ocean_LCL" ? "To Port" : "To"}
+              </option>
 
               {(freightType === "Air"
                 ? options.air_locations
                 : options.ports
               ).map((x) => (
-                <option key={x}>{x}</option>
+                <option key={x} value={x}>
+                  {x}
+                </option>
               ))}
             </select>
 
-            <input
-              type="number"
-              placeholder="Weight KG"
-              className={CONTROL_CLASS}
-              onChange={(e) => handleChange("weight", e.target.value)}
-            />
+            {freightType === "Air" && (
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="Weight KG"
+                className={CONTROL_CLASS}
+                onChange={(e) => handleChange("weight", e.target.value)}
+              />
+            )}
 
             <input
               type="number"
@@ -671,15 +705,16 @@ export default function PricingCalculator() {
         {result && (
           <div className="mt-8 rounded-lg border border-[#D9E1EC] bg-[#F1F1F1] p-6">
             <h3 className="mb-3 text-2xl font-bold text-[#E4660C]">
-              {result.estimate === "Thank you for your enquiry, We will get back to you as soon as possible"
+              {result.estimate ===
+              "Thank you for your enquiry, We will get back to you as soon as possible"
                 ? "Thank you for your enquiry, We will get back to you as soon as possible"
                 : `Estimate: ${result.estimate} ${result.currency}`}
             </h3>
 
             {freightType === "Relocation" && (
               <p className="text-gray-600">
-                Our Our Pricing team will connect with you shortly regarding your
-                relocation enquiry.
+                Our Our Pricing team will connect with you shortly regarding
+                your relocation enquiry.
               </p>
             )}
             <p className="text-gray-600">{result.disclaimer}</p>
